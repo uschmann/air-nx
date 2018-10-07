@@ -8,9 +8,11 @@
 #include "utils.h"
 #include "handler.h"
 #include "cJSON.h"
+#include "fs.h"
 
 
 static struct mg_serve_http_opts s_http_server_opts;
+static struct mg_serve_http_opts s_http_server_opts_download;
 static const char *s_http_port = "80";
 static const struct mg_str s_get_method = MG_MK_STR("GET");
 static const struct mg_str s_put_method = MG_MK_STR("PUT");
@@ -28,13 +30,18 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 	struct http_message *hm = (struct http_message *) ev_data;
 
   	static const struct mg_str api_prefix = MG_MK_STR("/api");
+	static const struct mg_str download_prefix = MG_MK_STR("/download");
   	static const struct mg_str api_file = MG_MK_STR("/api/file");
 	static const struct mg_str api_copy = MG_MK_STR("/api/file/copy");
 	static const struct mg_str api_rename = MG_MK_STR("/api/file/rename");
 	static const struct mg_str api_dir = MG_MK_STR("/api/directory");
 
 	if (ev == MG_EV_HTTP_REQUEST) {
-			if (has_prefix(&hm->uri, &api_prefix)) {
+			if(has_prefix(&hm->uri, &download_prefix)) {
+				printf("Download\n");
+				mg_serve_http(nc, hm, s_http_server_opts_download);
+			}
+			else if (has_prefix(&hm->uri, &api_prefix)) {
 				// /file
 				if(is_equal(&hm->uri, &api_file)) {
 					if (is_equal(&hm->method, &s_get_method)) {
@@ -129,7 +136,7 @@ static void handle_upload(struct mg_connection *nc, int ev, void *p) {
 int main(int argc, char **argv)
 {
 	gfxInitDefault();
-
+	romfsInit();
 	socketInitializeDefault();
   	nxlinkStdio(); 
 
@@ -138,8 +145,12 @@ int main(int argc, char **argv)
 
   	mg_mgr_init(&mgr, NULL);
   	c = mg_bind(&mgr, s_http_port, ev_handler);
-  	
-  	s_http_server_opts.document_root = "/";
+	
+	s_http_server_opts_download.document_root = "/";
+	s_http_server_opts_download.url_rewrites = "/download/=/";
+	s_http_server_opts_download.enable_directory_listing = "yes";
+	
+  	s_http_server_opts.document_root = "romfs:/www";
 	mg_register_http_endpoint(c, "/api/upload", handle_upload);
 
 	mg_set_protocol_http_websocket(c);
@@ -162,6 +173,7 @@ int main(int argc, char **argv)
 	}
 	mg_mgr_free(&mgr);
 
+	romfsExit();
 	socketExit();
 	gfxExit();
 	return 0;

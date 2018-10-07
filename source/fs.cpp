@@ -204,6 +204,9 @@ Result FS_CopyDir(char *src, char *dst)
 		closedir(directory);
 		return 0;
 	}
+    else {
+        printf("Could not open %s\n", src);
+    }
 
 	return -1;
 }

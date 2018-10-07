@@ -48,7 +48,7 @@ ARCH	:=	-march=armv8-a -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 			$(ARCH) $(DEFINES)
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DMG_ENABLE_HTTP_STREAMING_MULTIPART
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DMG_ENABLE_HTTP_STREAMING_MULTIPART -DMG_ENABLE_HTTP_URL_REWRITES
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11 `sdl2-config --cflags`
 
