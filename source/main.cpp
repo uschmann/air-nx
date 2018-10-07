@@ -7,6 +7,7 @@
 #include "mongoose.h"
 #include "utils.h"
 #include "handler.h"
+#include "cJSON.h"
 
 
 static struct mg_serve_http_opts s_http_server_opts;
@@ -55,6 +56,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 struct file_writer_data {
   FILE *fp;
   size_t bytes_written;
+  char * path;
 };
 
 
@@ -72,6 +74,8 @@ static void handle_upload(struct mg_connection *nc, int ev, void *p) {
 			data = (struct file_writer_data *)calloc(1, sizeof(struct file_writer_data));
 			data->fp = fopen(path, "w+");
 			data->bytes_written = 0;
+			data->path = (char*)calloc(strlen(path) + 1, sizeof(char));
+			sprintf(data->path, path);
 
 			if (data->fp == NULL) {
 				mg_printf(nc, "%s",
@@ -96,10 +100,16 @@ static void handle_upload(struct mg_connection *nc, int ev, void *p) {
       break;
     }
     case MG_EV_HTTP_PART_END: {
-      util_response_json(nc, "OK");
+	  fclose(data->fp);
+
+	  cJSON * jsonFile = util_create_json_from_file(data->path);
+	  char * string = cJSON_Print(jsonFile);
+	  cJSON_Delete(jsonFile);
+      util_response_json(nc, string);
+
+	  free(data->path);
+	  free(data);
       nc->flags |= MG_F_SEND_AND_CLOSE;
-      fclose(data->fp);
-      free(data);
       nc->user_data = NULL;
       break;
     }
@@ -121,7 +131,7 @@ int main(int argc, char **argv)
   	
 
   	s_http_server_opts.document_root = "/";
-	mg_register_http_endpoint(c, "/upload", handle_upload);
+	mg_register_http_endpoint(c, "/api/upload", handle_upload);
 
 	mg_set_protocol_http_websocket(c);
 
