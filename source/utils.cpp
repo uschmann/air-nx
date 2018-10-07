@@ -36,6 +36,11 @@ void util_response_404(struct mg_connection *nc, char* content)
     mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-Length: %d\r\n\r\n%s", strlen(content), content);
 }
 
+void util_response_409(struct mg_connection *nc, char* content)
+{
+    mg_printf(nc, "HTTP/1.1 409 Conflict\r\nContent-Length: %d\r\n\r\n%s", strlen(content), content);
+}
+
 void util_response_json(struct mg_connection *nc, char* content)
 {
     mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: application/json\r\n\r\n%s", strlen(content), content);

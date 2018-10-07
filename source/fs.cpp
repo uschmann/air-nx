@@ -1,9 +1,8 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <switch.h>
-
 #include "fs.h"
+
+#include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 int FS_MakeDir(const char *path)
 {
@@ -97,4 +96,114 @@ int FS_IsDirectory(const char *path) {
    if (stat(path, &statbuf) != 0)
        return 0;
    return S_ISDIR(statbuf.st_mode);
+}
+
+// Copy file from src to dst
+static int FS_CopyFile(char *src, char *dst)
+{
+	int chunksize = (512 * 1024); // Chunk size
+	char *buffer = (char *)malloc(chunksize); // Reading buffer
+
+	u64 totalwrite = 0; // Accumulated writing
+	u64 totalread = 0; // Accumulated reading
+
+	int result = 0; // Result
+
+	int in = open(src, O_RDONLY, 0777); // Open file for reading
+	u64 size = FS_GetFileSize(src);
+
+	// Opened file for reading
+	if (in >= 0)
+	{
+		if (FS_FileExists(dst))
+			remove(dst); // Delete output file (if existing)
+
+		int out = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0777); // Open output file for writing
+
+		if (out >= 0) // Opened file for writing
+		{
+			u64 b_read = 0; // Read byte count
+
+			// Copy loop (512KB at a time)
+			while((b_read = read(in, buffer, chunksize)) > 0)
+			{
+				totalread += b_read; // Accumulate read data
+				totalwrite += write(out, buffer, b_read); // Write data
+			}
+
+			close(out); // Close output file
+			
+			if (totalread != totalwrite) // Insufficient copy
+				result = -3;
+		}
+		
+		else // Output open error
+			result = -2;
+			
+		close(in); // Close input file
+	}
+
+	// Input open error
+	else
+		result = -1;
+	
+	free(buffer); // Free memory
+	return result; // Return result
+}
+
+static Result FS_CopyDir(char *src, char *dst)
+{
+	DIR *directory = opendir(src);
+
+	if (directory)
+	{
+		// Create Output Directory (is allowed to fail, we can merge folders after all)
+		FS_MakeDir(dst);
+		
+		struct dirent *entries;
+
+		// Iterate Files
+		while ((entries = readdir(directory)) != NULL)
+		{
+			if (strlen(entries->d_name) > 0)
+			{
+				// Calculate Buffer Size
+				int insize = strlen(src) + strlen(entries->d_name) + 2;
+				int outsize = strlen(dst) + strlen(entries->d_name) + 2;
+
+				// Allocate Buffer
+				char *inbuffer = (char *)malloc(insize);
+				char *outbuffer = (char *)malloc(outsize);
+
+				// Puzzle Input Path
+				strcpy(inbuffer, src);
+				inbuffer[strlen(inbuffer) + 1] = 0;
+				inbuffer[strlen(inbuffer)] = '/';
+				strcpy(inbuffer + strlen(inbuffer), entries->d_name);
+
+				// Puzzle Output Path
+				strcpy(outbuffer, dst);
+				outbuffer[strlen(outbuffer) + 1] = 0;
+				outbuffer[strlen(outbuffer)] = '/';
+				strcpy(outbuffer + strlen(outbuffer), entries->d_name);
+
+				// Another Folder
+				if (entries->d_type == DT_DIR)
+					FS_CopyDir(inbuffer, outbuffer); // Copy Folder (via recursion)
+
+				// Simple File
+				else
+					FS_CopyFile(inbuffer, outbuffer); // Copy File
+
+				// Free Buffer
+				free(inbuffer);
+				free(outbuffer);
+			}
+		}
+
+		closedir(directory);
+		return 0;
+	}
+
+	return -1;
 }

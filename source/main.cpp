@@ -27,6 +27,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 
   	static const struct mg_str api_prefix = MG_MK_STR("/api");
   	static const struct mg_str api_file = MG_MK_STR("/api/file");
+	  static const struct mg_str api_dir = MG_MK_STR("/api/directory");
 
 	if (ev == MG_EV_HTTP_REQUEST) {
 			if (has_prefix(&hm->uri, &api_prefix)) {
@@ -38,6 +39,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					else if (is_equal(&hm->method, &s_delele_method)) {
 						handleDeleteFile(nc, hm);
 					}
+				}
+				// /directory
+				if(is_equal(&hm->uri, &api_dir)) {
+					handleMakeDir(nc, hm);
 				}
 			}
 			else {
