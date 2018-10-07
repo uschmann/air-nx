@@ -101,8 +101,6 @@ void handleCopy(struct mg_connection *nc, http_message *hm)
     util_get_query_var(from, "from", hm);
     util_get_query_var(to, "to", hm);
 
-    printf("%s -> %s\n", from, to);
-
     if(!FS_FileExists(from) && !FS_DirExists(from)) {
         util_response_404(nc, "Not found from");
     }
@@ -113,6 +111,28 @@ void handleCopy(struct mg_connection *nc, http_message *hm)
         else {
             FS_CopyFile(from, to);
         }
+
+        cJSON * jsonFile = util_create_json_from_file(to);
+	    char * string = cJSON_Print(jsonFile);
+	    cJSON_Delete(jsonFile);
+        util_response_json(nc, string);
+    }
+}
+
+void handleRename(struct mg_connection *nc, http_message *hm)
+{
+    char from[FS_MAX_PATH] = { '\0' };
+    char to[FS_MAX_PATH] = { '\0' };
+    util_get_query_var(from, "from", hm);
+    util_get_query_var(to, "to", hm);
+
+    printf("Rename: %s -> %s\n", from, to);
+
+    if(!FS_FileExists(from) && !FS_DirExists(from)) {
+        util_response_404(nc, "Not found from");
+    }
+    else {
+        rename(from, to);
 
         cJSON * jsonFile = util_create_json_from_file(to);
 	    char * string = cJSON_Print(jsonFile);

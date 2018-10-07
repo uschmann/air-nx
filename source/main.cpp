@@ -30,6 +30,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
   	static const struct mg_str api_prefix = MG_MK_STR("/api");
   	static const struct mg_str api_file = MG_MK_STR("/api/file");
 	static const struct mg_str api_copy = MG_MK_STR("/api/file/copy");
+	static const struct mg_str api_rename = MG_MK_STR("/api/file/rename");
 	static const struct mg_str api_dir = MG_MK_STR("/api/directory");
 
 	if (ev == MG_EV_HTTP_REQUEST) {
@@ -46,6 +47,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 				// /file/copy
 				if(is_equal(&hm->uri, &api_copy)) {
 					handleCopy(nc, hm);
+				}
+				// /file/rename
+				if(is_equal(&hm->uri, &api_rename)) {
+					handleRename(nc, hm);
 				}
 				// /directory
 				if(is_equal(&hm->uri, &api_dir)) {
