@@ -130,7 +130,7 @@ export default {
               this.load(file.path);
           }
           else {
-              alert("download " + file.name);
+              window.open('/download' + file.path, '_blank');
           }
       },
       back: function() {
