@@ -1,12 +1,13 @@
 #include <string.h>
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <switch.h>
-
 #include <netdb.h>
+
 #include "mongoose.h"
 #include "utils.h"
 #include "handler.h"
+
 
 static struct mg_serve_http_opts s_http_server_opts;
 static const char *s_http_port = "80";
@@ -51,6 +52,60 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 	}
 }
 
+struct file_writer_data {
+  FILE *fp;
+  size_t bytes_written;
+};
+
+
+static void handle_upload(struct mg_connection *nc, int ev, void *p) {
+  struct file_writer_data *data = (struct file_writer_data *) nc->user_data;
+  struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
+  struct http_message *hm = (struct http_message *) p;
+  char path[PATH_MAX] = { '\0' };
+
+  switch (ev) {
+	case MG_EV_HTTP_MULTIPART_REQUEST: 
+		if (data == NULL) {
+			util_get_query_var(path, "path", hm);
+		
+			data = (struct file_writer_data *)calloc(1, sizeof(struct file_writer_data));
+			data->fp = fopen(path, "w+");
+			data->bytes_written = 0;
+
+			if (data->fp == NULL) {
+				mg_printf(nc, "%s",
+							"HTTP/1.1 500 Failed to open a file\r\n"
+							"Content-Length: 0\r\n\r\n");
+				nc->flags |= MG_F_SEND_AND_CLOSE;
+				free(data);
+				return;
+			}
+			nc->user_data = (void *) data;
+      	}
+	break;
+    case MG_EV_HTTP_PART_DATA: {
+      if (fwrite(mp->data.p, 1, mp->data.len, data->fp) != mp->data.len) {
+        mg_printf(nc, "%s",
+                  "HTTP/1.1 500 Failed to write to a file\r\n"
+                  "Content-Length: 0\r\n\r\n");
+        nc->flags |= MG_F_SEND_AND_CLOSE;
+        return;
+      }
+      data->bytes_written += mp->data.len;
+      break;
+    }
+    case MG_EV_HTTP_PART_END: {
+      util_response_json(nc, "OK");
+      nc->flags |= MG_F_SEND_AND_CLOSE;
+      fclose(data->fp);
+      free(data);
+      nc->user_data = NULL;
+      break;
+    }
+  }
+}
+
 int main(int argc, char **argv)
 {
 	gfxInitDefault();
@@ -63,9 +118,12 @@ int main(int argc, char **argv)
 
   	mg_mgr_init(&mgr, NULL);
   	c = mg_bind(&mgr, s_http_port, ev_handler);
-  	mg_set_protocol_http_websocket(c);
+  	
 
   	s_http_server_opts.document_root = "/";
+	mg_register_http_endpoint(c, "/upload", handle_upload);
+
+	mg_set_protocol_http_websocket(c);
 
 	while(appletMainLoop())
 	{
