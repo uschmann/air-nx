@@ -99,7 +99,7 @@ int FS_IsDirectory(const char *path) {
 }
 
 // Copy file from src to dst
-static int FS_CopyFile(char *src, char *dst)
+int FS_CopyFile(char *src, char *dst)
 {
 	int chunksize = (512 * 1024); // Chunk size
 	char *buffer = (char *)malloc(chunksize); // Reading buffer
@@ -151,7 +151,7 @@ static int FS_CopyFile(char *src, char *dst)
 	return result; // Return result
 }
 
-static Result FS_CopyDir(char *src, char *dst)
+Result FS_CopyDir(char *src, char *dst)
 {
 	DIR *directory = opendir(src);
 

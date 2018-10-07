@@ -29,7 +29,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 
   	static const struct mg_str api_prefix = MG_MK_STR("/api");
   	static const struct mg_str api_file = MG_MK_STR("/api/file");
-	  static const struct mg_str api_dir = MG_MK_STR("/api/directory");
+	static const struct mg_str api_copy = MG_MK_STR("/api/file/copy");
+	static const struct mg_str api_dir = MG_MK_STR("/api/directory");
 
 	if (ev == MG_EV_HTTP_REQUEST) {
 			if (has_prefix(&hm->uri, &api_prefix)) {
@@ -41,6 +42,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					else if (is_equal(&hm->method, &s_delele_method)) {
 						handleDeleteFile(nc, hm);
 					}
+				}
+				// /file/copy
+				if(is_equal(&hm->uri, &api_copy)) {
+					handleCopy(nc, hm);
 				}
 				// /directory
 				if(is_equal(&hm->uri, &api_dir)) {
@@ -129,7 +134,6 @@ int main(int argc, char **argv)
   	mg_mgr_init(&mgr, NULL);
   	c = mg_bind(&mgr, s_http_port, ev_handler);
   	
-
   	s_http_server_opts.document_root = "/";
 	mg_register_http_endpoint(c, "/api/upload", handle_upload);
 

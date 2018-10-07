@@ -14,5 +14,5 @@ const char *FS_GetFileExt(const char *filename);
 char *FS_GetFileModifiedTime(const char *filename);
 u64 FS_GetFileSize(const char *filename);
 int FS_IsDirectory(const char *path);
-static Result FS_CopyDir(char *src, char *dst);
-static int FS_CopyFile(char *src, char *dst);
+int FS_CopyFile(char *src, char *dst);
+Result FS_CopyDir(char *src, char *dst);
