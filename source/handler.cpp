@@ -66,3 +66,45 @@ void handleGetFiles(struct mg_connection *nc, http_message *hm)
         util_response_json(nc, string);
     }
 }
+
+void handleDeleteFile(struct mg_connection *nc, http_message *hm)
+{
+    char path[1024] = { '\0' };
+	if(util_get_query_var(path, "path", hm)) {
+        if(FS_FileExists(path) || FS_DirExists(path)) {
+            printf("%s\n", path);
+
+            cJSON* file = cJSON_CreateObject();
+
+            // name
+            cJSON *name = cJSON_CreateString(utils_Basename(path));
+            cJSON_AddItemToObject(file, "name", name);
+            cJSON *pathName = cJSON_CreateString(path);
+            cJSON_AddItemToObject(file, "path", pathName);
+            // ext
+            cJSON *ext = cJSON_CreateString(FS_GetFileExt(path));
+            cJSON_AddItemToObject(file, "extension", ext);
+            // last_modified
+            cJSON *lastModified = cJSON_CreateString(FS_GetFileModifiedTime(path));
+            cJSON_AddItemToObject(file, "last_modified", lastModified);
+            // is_dir
+            cJSON *isDir = FS_IsDirectory(path) == 1 ? cJSON_CreateTrue() : cJSON_CreateFalse();
+            cJSON_AddItemToObject(file, "is_directory", isDir);
+
+            char* string = cJSON_Print(file);
+            cJSON_Delete(file);
+            
+            if(FS_IsDirectory(path)) {
+                rmtree(path);
+            }
+            else {
+                remove(path);   
+            }
+
+            util_response_json(nc, string);
+        }
+        else {
+            util_response_404(nc, "Not Found");
+        }
+    }
+}

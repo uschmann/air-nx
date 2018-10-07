@@ -32,7 +32,12 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 			if (has_prefix(&hm->uri, &api_prefix)) {
 				// /file
 				if(is_equal(&hm->uri, &api_file)) {
-					handleGetFiles(nc, hm);
+					if (is_equal(&hm->method, &s_get_method)) {
+						handleGetFiles(nc, hm);
+					}
+					else if (is_equal(&hm->method, &s_delele_method)) {
+						handleDeleteFile(nc, hm);
+					}
 				}
 			}
 			else {
