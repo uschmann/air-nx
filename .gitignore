@@ -7,3 +7,5 @@ build
 *.nro
 *.nso
 *.pfs0
+
+frontend/node_modules
