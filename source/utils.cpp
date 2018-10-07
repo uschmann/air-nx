@@ -2,6 +2,7 @@
 #include "yuarel.h"
 #include <string.h>
 #include <stdio.h>
+#include "fs.h"
 
 void util_copy_mg_str(char * dest, mg_str* src)
 {
@@ -112,4 +113,26 @@ void rmtree(const char path[])
         printf("Removed a directory: %s\n", path);
     else
         printf("Can`t remove a directory: %s Error: %d\n", path, rmdir(path));
+}
+
+cJSON * util_create_json_from_file(char * path)
+{
+    cJSON* file = cJSON_CreateObject();
+
+    // name
+    cJSON *name = cJSON_CreateString(utils_Basename(path));
+    cJSON_AddItemToObject(file, "name", name);
+    cJSON *pathName = cJSON_CreateString(path);
+    cJSON_AddItemToObject(file, "path", pathName);
+    // ext
+    cJSON *ext = cJSON_CreateString(FS_GetFileExt(path));
+    cJSON_AddItemToObject(file, "extension", ext);
+    // last_modified
+    cJSON *lastModified = cJSON_CreateString(FS_GetFileModifiedTime(path));
+    cJSON_AddItemToObject(file, "last_modified", lastModified);
+    // is_dir
+    cJSON *isDir = FS_IsDirectory(path) == 1 ? cJSON_CreateTrue() : cJSON_CreateFalse();
+    cJSON_AddItemToObject(file, "is_directory", isDir);
+
+    return file;
 }
