@@ -10,6 +10,10 @@
 #include "cJSON.h"
 #include "fs.h"
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 static struct mg_serve_http_opts s_http_server_opts;
 static struct mg_serve_http_opts s_http_server_opts_download;
@@ -142,12 +146,79 @@ static void handle_upload(struct mg_connection *nc, int ev, void *p) {
   }
 }
 
-int main(int argc, char **argv)
-{
-	gfxInitDefault();
+static SDL_Window* window;
+static SDL_Renderer* renderer;
+static SDL_Surface* screen;
+static TTF_Font* regularFont;
+static TTF_Font* boldFont;
+static SDL_Texture* logo;
+static SDL_Color white = { 0xFF, 0xFF, 0xFF };
+
+void init() {
+	SDL_Init(SDL_INIT_EVERYTHING);
+	TTF_Init();
+
 	romfsInit();
 	socketInitializeDefault();
+	nifmInitialize();
   	nxlinkStdio(); 
+
+	window = SDL_CreateWindow(nullptr, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+	screen = SDL_GetWindowSurface(window);
+
+	regularFont = TTF_OpenFont("romfs:/OpenSans-Regular.ttf", 35);
+	boldFont = TTF_OpenFont("romfs:/OpenSans-Bold.ttf", 35);
+	logo = IMG_LoadTexture(renderer ,"romfs:/logo.png");
+}
+
+void drawText(const char* text , TTF_Font* font, SDL_Color color, int x, int y)
+{
+    SDL_Surface* surfaceMessage = TTF_RenderText_Blended(font, text, color);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+    SDL_Rect textRect = { x, y, surfaceMessage->w, surfaceMessage->h };
+    
+    SDL_RenderCopy(renderer, texture, NULL, &textRect);
+    
+    SDL_FreeSurface(surfaceMessage);
+    SDL_DestroyTexture(texture);
+}
+
+void getIp(char * buffer)
+{
+	u32 ip = 0;
+	nifmGetCurrentIpAddress(&ip);
+    unsigned char bytes[4];
+    bytes[0] = ip & 0xFF;
+    bytes[1] = (ip >> 8) & 0xFF;
+    bytes[2] = (ip >> 16) & 0xFF;
+    bytes[3] = (ip >> 24) & 0xFF;   
+    sprintf(buffer, "%d.%d.%d.%d", bytes[3], bytes[2], bytes[1], bytes[0]);        
+}
+
+void render() {
+	char ip[100];
+	gethostname(ip, 100);
+	
+	char address[500];
+	sprintf(address, "http://%s", ip);
+
+	SDL_SetRenderDrawColor(renderer, 0x03, 0xa3, 0xd2, 0xFF);
+    SDL_RenderClear(renderer);
+
+	SDL_Rect src = { 0, 0, 421, 108 };
+	SDL_Rect dest = { 1280 / 2 - 210, 120, 421, 108 };
+	SDL_RenderCopy(renderer, logo, &src, &dest);
+
+	drawText("Point your webbrowser to:", boldFont, white, 1280 / 2 - 200, 720 / 2);
+	drawText(address, regularFont, white, 1280 / 2 - 130, 720 / 2 + 100);
+
+    SDL_RenderPresent(renderer);
+}
+
+int main(int argc, char **argv)
+{
+	init();
 
 	struct mg_mgr mgr;
   	struct mg_connection *c;
@@ -165,6 +236,8 @@ int main(int argc, char **argv)
 
 	mg_set_protocol_http_websocket(c);
 
+	render();
+
 	while(appletMainLoop() && isRunning)
 	{
 		//Scan all the inputs. This should be done once for each frame
@@ -176,13 +249,11 @@ int main(int argc, char **argv)
 		if (kDown & KEY_PLUS) break; // break in order to return to hbmenu
 
 		mg_mgr_poll(&mgr, 1000);
-
-		gfxFlushBuffers();
-		gfxSwapBuffers();
-		gfxWaitForVsync();
 	}
 	mg_mgr_free(&mgr);
 
+
+	SDL_Quit();
 	romfsExit();
 	socketExit();
 	gfxExit();

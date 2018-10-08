@@ -5,7 +5,7 @@
         <md-button class="md-icon-button" @click="showNavigation = true">
           <md-icon>menu</md-icon>
         </md-button>
-        <span class="md-title">Air-NX</span>
+        <span class="md-title">AirNx</span>
       </md-app-toolbar>
 
       <md-app-drawer :md-active.sync="showNavigation" class="drawer">

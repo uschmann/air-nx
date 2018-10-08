@@ -55,7 +55,8 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11 `sdl2-config --cfla
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lnx
+#LIBS	:= -lnx
+LIBS	:= `sdl2-config --libs` -lSDL2_gfx -lSDL2_image -lz -ljpeg -lSDL2_ttf -lfreetype -lpng -lz -lbz2 -lcurl
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
