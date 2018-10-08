@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div @dragover.prevent @drop="onFileDrop">
     <md-toolbar :md-elevation="1">
         <div class="md-toolbar-section-start">
             <md-button @click="back()">
@@ -17,9 +17,10 @@
                         <span>New folder</span>
                         <md-icon>folder</md-icon>
                     </md-menu-item>
-                    <md-menu-item @click="upload()">
+                    <md-menu-item @click="openUploadModal">
                         <span>Upload file</span>
                         <md-icon>cloud_upload</md-icon>
+                        <input id="fileInput" multiple="multiple" type="file" style="display:none" v-on:change="onFileSelected"/>
                     </md-menu-item>
                 </md-menu-content>
             </md-menu>
@@ -80,8 +81,16 @@
       @md-cancel="onDeleteCancel"
       @md-confirm="onDeleteConfirm" />
 
-<md-dialog :md-active.sync="showUploadModal">
+<md-dialog :md-active="filesToUpload.length > 0">
       <md-dialog-title>Upload</md-dialog-title>
+      <div class="upload-modal">
+        <md-content v-if="filesToUpload.length > 0">
+            <h1 class="md-title">{{filesToUpload[0].name}}</h1>
+            <p class="md-subheading">{{uploadProgress}}%</p>
+            <md-progress-bar class="md-accent" md-mode="determinate" :md-value="uploadProgress"></md-progress-bar>
+            <p><strong>{{filesToUpload.length}}</strong> files left.</p>
+        </md-content>
+      </div>
 </md-dialog>
 
   </div>
@@ -99,12 +108,14 @@ export default {
       return {
           currentDir: '/',
           isLoading: false,
-          files: null,
+          files: [],
           showNewFolderModal: false,
           newFolderName: '',
           showDeleteModal: false,
           fileToDelete: null,
-          showUploadModal: false
+          showUploadModal: false,
+          filesToUpload: [],
+          uploadProgress: 0,
       };
   },
   computed: {
@@ -165,7 +176,55 @@ export default {
             });
       },
       upload: function() {
-          this.showUploadModal = true;
+          const self = this;
+          self.uploadProgress = 0;
+
+          const config = {
+                onUploadProgress: function(progressEvent) {
+                    var percentCompleted = Math.round( (progressEvent.loaded * 100) / progressEvent.total )
+                    self.uploadProgress = percentCompleted;
+                }
+            }
+
+            let data = new FormData();
+            data.append('file', this.filesToUpload[0]);
+
+            let path = this.currentDir;
+            if(!path.endsWith('/')) {
+                path += '/';
+            }
+            path += this.filesToUpload[0].name;
+
+             axios.put(`/api/upload?path=${path}`, data, config)
+            .then(res => {
+                self.files.push(res.data);   
+                self.filesToUpload.shift();   
+                if(self.filesToUpload.length > 0) {
+                    self.upload();
+                }
+            })
+            .catch(err => console.log(err));
+      },
+      onFileDrop: function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            var files = e.dataTransfer.files;
+            console.log(files);
+
+            for(var i = 0; i < files.length; i++) {
+                this.filesToUpload.push(files[i]);
+            }
+            this.upload();
+      },
+      onFileSelected: function(e, target) {
+        var files = e.target.files;
+        for(var i = 0; i < files.length; i++) {
+                this.filesToUpload.push(files[i]);
+            }
+        this.upload();
+      },
+      openUploadModal: function() {
+          document.getElementById('fileInput').click();
       }
   },
   mounted: function() {
@@ -173,3 +232,10 @@ export default {
   }
 }
 </script>
+ 
+<style scoped>
+.upload-modal {
+    padding: 40px;
+    min-width: 400px;
+}
+</style>

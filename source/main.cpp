@@ -17,6 +17,7 @@ static const char *s_http_port = "80";
 static const struct mg_str s_get_method = MG_MK_STR("GET");
 static const struct mg_str s_put_method = MG_MK_STR("PUT");
 static const struct mg_str s_delele_method = MG_MK_STR("DELETE");
+static bool isRunning = true;
 
 static int has_prefix(const struct mg_str *uri, const struct mg_str *prefix) {
   return uri->len > prefix->len && memcmp(uri->p, prefix->p, prefix->len) == 0;
@@ -24,6 +25,12 @@ static int has_prefix(const struct mg_str *uri, const struct mg_str *prefix) {
 
 static int is_equal(const struct mg_str *s1, const struct mg_str *s2) {
   return s1->len == s2->len && memcmp(s1->p, s2->p, s2->len) == 0;
+}
+
+static void exit_handler(struct mg_connection *nc, int ev, void *ev_data) {
+	if (ev == MG_EV_HTTP_REQUEST) {
+		isRunning = false;
+	}
 }
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
@@ -152,10 +159,11 @@ int main(int argc, char **argv)
 	
   	s_http_server_opts.document_root = "romfs:/www";
 	mg_register_http_endpoint(c, "/api/upload", handle_upload);
+	mg_register_http_endpoint(c, "/api/exit", exit_handler);
 
 	mg_set_protocol_http_websocket(c);
 
-	while(appletMainLoop())
+	while(appletMainLoop() && isRunning)
 	{
 		//Scan all the inputs. This should be done once for each frame
 		hidScanInput();
