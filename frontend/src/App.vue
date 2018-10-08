@@ -18,6 +18,10 @@
             <md-icon>sd_card</md-icon>
             <router-link class="md-list-item-text" to="/files">SD-Card</router-link>
           </md-list-item>
+          <md-list-item @click="exit">
+            <md-icon>exit_to_app</md-icon>
+            <span class="md-list-item-text">Exit to hb-menu</span>
+          </md-list-item>
         </md-list>
       </md-app-drawer>
 
@@ -31,11 +35,19 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
     name: 'App',
     data: () => ({
       showNavigation: false
-    })
+    }),
+    methods: {
+        exit: function() {
+            axios.get('/api/exit')
+            alert('Air-NX has been closed. You will need to restart it to continue.');
+        }
+    }
   }
 </script>
 

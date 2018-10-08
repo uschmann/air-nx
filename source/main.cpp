@@ -84,6 +84,7 @@ struct file_writer_data {
 };
 
 
+
 static void handle_upload(struct mg_connection *nc, int ev, void *p) {
   struct file_writer_data *data = (struct file_writer_data *) nc->user_data;
   struct mg_http_multipart_part *mp = (struct mg_http_multipart_part *) p;
@@ -96,10 +97,11 @@ static void handle_upload(struct mg_connection *nc, int ev, void *p) {
 			util_get_query_var(path, "path", hm);
 		
 			data = (struct file_writer_data *)calloc(1, sizeof(struct file_writer_data));
-			data->fp = fopen(path, "w+");
 			data->bytes_written = 0;
 			data->path = (char*)calloc(strlen(path) + 1, sizeof(char));
 			sprintf(data->path, path);
+
+			data->fp = fopen(data->path, "w+");
 
 			if (data->fp == NULL) {
 				mg_printf(nc, "%s",

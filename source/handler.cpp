@@ -126,8 +126,6 @@ void handleRename(struct mg_connection *nc, http_message *hm)
     util_get_query_var(from, "from", hm);
     util_get_query_var(to, "to", hm);
 
-    printf("Rename: %s -> %s\n", from, to);
-
     if(!FS_FileExists(from) && !FS_DirExists(from)) {
         util_response_404(nc, "Not found from");
     }

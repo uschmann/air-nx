@@ -12,3 +12,4 @@ void util_response_json(struct mg_connection *nc, char* content);
 char *utils_Basename(const char *filename);
 void rmtree(const char path[]);
 cJSON * util_create_json_from_file(char * path);
+int util_decode(const char *s, char *dec);

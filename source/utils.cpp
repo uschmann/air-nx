@@ -20,7 +20,7 @@ bool util_get_query_var(char* dest, char* name, struct http_message * request)
 
     for(int i = 0; i < numberOfParams; i++) {
         if(strcmp(params[i].key, name) == 0) {
-            strcpy(dest, params[i].val);
+            util_decode(params[i].val, dest);
             return true;
         }
     }
@@ -135,4 +135,31 @@ cJSON * util_create_json_from_file(char * path)
     cJSON_AddItemToObject(file, "is_directory", isDir);
 
     return file;
+}
+
+int ishex(int x)
+{
+	return	(x >= '0' && x <= '9')	||
+		(x >= 'a' && x <= 'f')	||
+		(x >= 'A' && x <= 'F');
+}
+
+int util_decode(const char *s, char *dec)
+{
+	char *o;
+	const char *end = s + strlen(s);
+	int c;
+ 
+	for (o = dec; s <= end; o++) {
+		c = *s++;
+		if (c == '+') c = ' ';
+		else if (c == '%' && (	!ishex(*s++)	||
+					!ishex(*s++)	||
+					!sscanf(s - 2, "%2x", &c)))
+			return -1;
+ 
+		if (dec) *o = c;
+	}
+ 
+	return o - dec;
 }
